@@ -27,6 +27,8 @@ pragma solidity ^0.8.30;
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { DecentralizedStableCoin } from "./DecentralizedStableCoin.sol";
+import "chainlink-brownie-contracts/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+
 
 
 // IMP, make notes also of the quizs especially of DEFI!
@@ -55,9 +57,12 @@ import { DecentralizedStableCoin } from "./DecentralizedStableCoin.sol";
     error tokenNotAllowed();
     error InvalidLength();
     error DSCEngine__TransferFailed();
+    error healthIssue(uint256 healthValue);
+    error NotMinted();
 
     mapping(address tokenAddr => address priceFeedAddr) public priceAddress;
     mapping(address => mapping(address => uint256)) public collateralBalances;
+    mapping(address => uint256) public D_minted;
     // This mapping going to hold the data, the user entry address, the tokenAddress chosed & the amount given!
 
     address[] public tokenContractAddress;
@@ -113,20 +118,79 @@ import { DecentralizedStableCoin } from "./DecentralizedStableCoin.sol";
       // collateralBalances, this mapping gonna store the user who deposited what amount of collateral
       // whenever I use to check, I just gonna enter the user & Token Address will get the amount deposited!
       (bool success) = IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount);
-      // We use the IERC20 interface to interact with external ERC20 token contracts.
+      /* We use the IERC20 interface to interact with external ERC20 token contracts.
 // It allows us to call standard ERC20 functions like transfer, approve, and transferFrom
 // without needing the full implementation code. This is useful when dealing with already
 // deployed tokens like DAI, USDC, or any custom ERC20 token.
 // IERC20 only defines the function signatures (not the logic) — think of it as a remote control.
 //  IERC20 only can be used to interact(call), but in ERC20 we can call & make changes to code
-
+*/
       if(!success){
         revert DSCEngine__TransferFailed(); 
       }
       emit collateralDeposited(msg.sender, tokenAddress, amount);
-  
+    }
+
+    function mintDSC(uint256 _amount) public {
+      D_minted[msg.sender] += _amount;
+      revertIfHealthFactorIsBroken(msg.sender); // if i<1;
+     (bool success) = i_DSC.mint(msg.sender ,_amount);
+     if(!success){
+      revert NotMinted();
+     }
+
+    }
+    function revertIfHealthFactorIsBroken(address) public returns(uint256){
+      _healthFactor(msg.sender); // check for i & emit value liq value
+      uint256 healthyValue;
+      if(healthyValue < 1){
+        revert healthIssue(healthyValue);
+      }
+
+    }
+    function _healthFactor(address) public returns(uint256) {
+      (uint256 minted_value, uint256 totalCollateralValueInUsd) = _getAccountInformation(msg.sender);
+       // real value of emit & i
+       return _calculateHealthFactor( minted_value, totalCollateralValueInUsd);
+     
+    }
+    function _calculateHealthFactor(uint256 minted_value, uint256 totalCollateralValueInUsd) public pure returns(uint256){
+       if (minted_value == 0) 
+       return type(uint256).max;
+       uint256 liqCollateralValue =  (totalCollateralValueInUsd * 50) / 100;
+      uint256 healthyValue =  liqCollateralValue / minted_value;
+      return healthyValue;
+    }
+
+    function _getAccountInformation(address) public returns(uint256 minted_value, uint256 collateralValue){
+      minted_value = D_minted[msg.sender];
+      collateralValue = getAccountCollateralValue(msg.sender);
+      // it calculates the value of i & emit
+    }
+    function getAccountCollateralValue(address) public returns(uint256){
+      uint256 totalCollateralValueInUsd = 0;
+      for(uint256 index = 0; index < tokenContractAddress.length; index++){
+        address token = tokenContractAddress[index];
+        uint256 tokenBalance = collateralBalances[msg.sender][token];
+        totalCollateralValueInUsd += getUsdValue(token, tokenBalance);
+      }
+      return totalCollateralValueInUsd ;
+    }
+
+    function getUsdValue(address token, uint256 tokenBalance) public returns(uint256 usdValue){
+      getUsdSum(token);
+      return usdValue*tokenBalance;
+    }
+
+    function getUsdSum(address token) public returns(uint256 usdValue){
+      AggregatorV3Interface pricefeed =  AggregatorV3Interface(token);
+      (, int256 answer, , , ) = pricefeed.latestRoundData();
+      return uint256((answer * 1e10) / 1e18);
+    }
+
+
 
     }
 
-   }
+   
 
