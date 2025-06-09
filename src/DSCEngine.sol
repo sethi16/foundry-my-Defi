@@ -111,8 +111,9 @@ import "chainlink-brownie-contracts/contracts/src/v0.8/interfaces/AggregatorV3In
 // Requires inheriting from OpenZeppelin's ReentrancyGuard and using the `nonReentrant` modifier.
 // reentrancy is a state in which a user withdraw the asset & without updating the balance calls it again to get the asset
 // reentrancy stops the user to enter the function without completing the function
+ 
    
-    function depositCollateral(address tokenAddress, uint256 amount) external tokenAllowed(tokenAddress) nonReentrant() moreThanZero(amount)  {
+    function depositCollateral(address tokenAddress, uint256 amount) public tokenAllowed(tokenAddress) nonReentrant() moreThanZero(amount)  {
 
       collateralBalances[msg.sender][tokenAddress] += amount;
       // collateralBalances, this mapping gonna store the user who deposited what amount of collateral
@@ -177,20 +178,22 @@ import "chainlink-brownie-contracts/contracts/src/v0.8/interfaces/AggregatorV3In
       return totalCollateralValueInUsd ;
     }
 
-    function getUsdValue(address token, uint256 tokenBalance) public returns(uint256 usdValue){
-      getUsdSum(token);
-      return usdValue*tokenBalance;
+    function getUsdValue(address token, uint256 tokenBalance) public returns(uint256 ){
+      uint256 usdValue = getUsdSum(token, tokenBalance);
     }
 
-    function getUsdSum(address token) public returns(uint256 usdValue){
-      AggregatorV3Interface pricefeed =  AggregatorV3Interface(token);
+    function getUsdSum(address token, uint256 tokenBalance) public view returns(uint256 usdValue){
+      address priceFeedAddr = priceAddress[token];
+      AggregatorV3Interface pricefeed = AggregatorV3Interface(priceFeedAddr);
       (, int256 answer, , , ) = pricefeed.latestRoundData();
-      return uint256((answer * 1e10) / 1e18);
+      // Assuming price feed returns 8 decimals, scale to 18 decimals
+       usdValue = (uint256(answer)*1e10 * tokenBalance)/1e18  ;
+      return usdValue;
     }
 
-
-
-    }
-
-   
+    function depositCollateralAndMintDsc(address tokenCollateralAddress,uint256 amountCollateral,uint256 amountDscToMint) public { 
+      depositCollateral(tokenCollateralAddress, amountCollateral);
+      mintDSC(amountDscToMint);
+}
+   }
 
