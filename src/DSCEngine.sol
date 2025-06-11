@@ -53,41 +53,56 @@ import "chainlink-brownie-contracts/contracts/src/v0.8/interfaces/AggregatorV3In
  * @notice This contract is based on the MakerDAO DSS  system
  */
    contract DSCEngine is ReentrancyGuard {
+    
     error GiveMoreThanZero();
     error tokenNotAllowed();
     error InvalidLength();
     error DSCEngine__TransferFailed();
     error healthIssue(uint256 healthValue);
     error NotMinted();
+    error CollateralNotRedeemed();
+    error NotSuccedInBuring();
+    error NotAbleToLiquidate();
+    error NotSuccedInLiquidation();
+    error Health_Factor_Not_Improved();
 
     mapping(address tokenAddr => address priceFeedAddr) public priceAddress;
-    mapping(address => mapping(address => uint256)) public collateralBalances;
+    mapping(address  => mapping(address  => uint256 )) public collateralBalances;
     mapping(address => uint256) public D_minted;
     // This mapping going to hold the data, the user entry address, the tokenAddress chosed & the amount given!
 
     address[] public tokenContractAddress;
     DecentralizedStableCoin public i_DSC;
+    uint256 private constant LIQUIDATION_THRESHOLD = 50; // This means you need to be 200% over-collateralized
+    uint256 private constant LIQUIDATION_BONUS = 10; // This means you get assets at a 10% discount when liquidating
+    uint256 private constant LIQUIDATION_PRECISION = 100;
+    uint256 private constant MIN_HEALTH_FACTOR = 1e18;
+    uint256 private constant PRECISION = 1e18;
+    uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
+    uint256 private constant FEED_PRECISION = 1e8;
     // imported contract can act as a dataType if used!
 
     //////////////////////////
     /////////EVENTS///////////
     ////////////////////////// 
     event collateralDeposited(address indexed user , address indexed s_tokenAddress, uint256 indexed s_amount);
+    event CollateralReciever(address indexed caller, address indexed token_Address, uint256 indexed amount_To_Be_Called);
+    event DebtBurner(address indexed _caller, uint256 indexed amount_to_be_burned);
      
     //////////////////////////
     /////////Modifier/////////
     ////////////////////////// 
 
   
-    modifier moreThanZero(uint256 amount){
-      if(amount == 0){
+    modifier moreThanZero(uint256 checking_amount){
+      if(checking_amount == 0){
         revert GiveMoreThanZero();
       }
       _;
     }
     
-    modifier tokenAllowed(address tokenAddress){
-      if(tokenAddress == address(0)){
+    modifier tokenAllowed(address checking_tokenAddress){
+      if(checking_tokenAddress == address(0)){
         revert tokenNotAllowed();
       }
       _;
@@ -158,7 +173,7 @@ import "chainlink-brownie-contracts/contracts/src/v0.8/interfaces/AggregatorV3In
     function _calculateHealthFactor(uint256 minted_value, uint256 totalCollateralValueInUsd) public pure returns(uint256){
        if (minted_value == 0) 
        return type(uint256).max;
-       uint256 liqCollateralValue =  (totalCollateralValueInUsd * 50) / 100;
+       uint256 liqCollateralValue =  (totalCollateralValueInUsd *LIQUIDATION_THRESHOLD) /LIQUIDATION_PRECISION;
       uint256 healthyValue =  liqCollateralValue / minted_value;
       return healthyValue;
     }
@@ -187,13 +202,65 @@ import "chainlink-brownie-contracts/contracts/src/v0.8/interfaces/AggregatorV3In
       AggregatorV3Interface pricefeed = AggregatorV3Interface(priceFeedAddr);
       (, int256 answer, , , ) = pricefeed.latestRoundData();
       // Assuming price feed returns 8 decimals, scale to 18 decimals
-       usdValue = (uint256(answer)*1e10 * tokenBalance)/1e18  ;
+       usdValue = (uint256(answer)*ADDITIONAL_FEED_PRECISION * tokenBalance)/PRECISION  ;
       return usdValue;
     }
 
     function depositCollateralAndMintDsc(address tokenCollateralAddress,uint256 amountCollateral,uint256 amountDscToMint) public { 
       depositCollateral(tokenCollateralAddress, amountCollateral);
       mintDSC(amountDscToMint);
+}
+function redeemCollateralforDSC(address _tokenAddress, uint256 amount_to_redeem, uint256 amount_to_be_burned) public 
+moreThanZero(amount_to_redeem) tokenAllowed(_tokenAddress){
+   burnDSC(amount_to_be_burned);
+  redeemCollateral(_tokenAddress, amount_to_redeem);
+}
+function redeemCollateral(address _tokenAddress, uint256 amount_to_redeem) public {
+  uint256 savedBalance = collateralBalances[msg.sender][_tokenAddress];
+  collateralBalances[msg.sender][_tokenAddress] = savedBalance - amount_to_redeem;
+  // updating the balance
+  emit CollateralReciever(msg.sender, _tokenAddress, amount_to_redeem);
+  bool success = IERC20(_tokenAddress).transfer(msg.sender, amount_to_redeem);
+  if(!success){
+    revert CollateralNotRedeemed();
+  }
+  revertIfHealthFactorIsBroken(msg.sender); 
+  // checking the Health factor value is it greater than 1!
+
+}
+function burnDSC(uint256 amount_to_be_burned) public{
+  uint256 minted_token = D_minted[msg.sender];
+  D_minted[msg.sender] =  minted_token - amount_to_be_burned;
+  // updating the minted token balance after burning
+  emit DebtBurner(msg.sender, amount_to_be_burned);
+  bool _success =  i_DSC.transferFrom(msg.sender, address(this), amount_to_be_burned);
+  if(!_success){
+    revert NotSuccedInBuring();
+  }
+  i_DSC.burn(amount_to_be_burned);
+  revertIfHealthFactorIsBroken(msg.sender); 
+  // checking the Health factor value is it greater than 1, if yes redeem the collateral!
+}
+function liquidation(address _tokenAddress, uint256 amount_to_liquidate, uint256 amount_to_be_burned ) public{
+ uint256 starting_Health_Factor = _healthFactor(msg.sender);
+ if(starting_Health_Factor >= 1){
+  revert NotAbleToLiquidate();
+ }
+ uint256 current_Collateral_Usd_Value = getUsdValue(_tokenAddress, amount_to_liquidate);
+ uint256 current_Collateral_Usd_Liquidatevalue = (current_Collateral_Usd_Value*LIQUIDATION_BONUS)/LIQUIDATION_PRECISION;
+
+
+  bool success = IERC20(_tokenAddress).transfer(msg.sender, current_Collateral_Usd_Liquidatevalue);
+  if(!success){
+    revert NotSuccedInLiquidation();
+  }
+
+  burnDSC(amount_to_be_burned);
+
+  uint256 ending_Health_Factor_Again = _healthFactor(msg.sender);
+  if(starting_Health_Factor >= ending_Health_Factor_Again){
+    revert Health_Factor_Not_Improved();
+  }
 }
    }
 
