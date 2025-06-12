@@ -43,6 +43,13 @@ contract HelperConfig is Script{
     function AnvilConfig() public returns(NetworkConfig memory){
         if(ActiveNetworkConfig.PriceFeedWbtc != address(0)){
             return ActiveNetworkConfig;
+           // First time you call the function: ActiveNetworkConfig.PriceFeedWbtc == address(0)
+//-> It runs the full setup (mock price feeds, ERC20 mocks, and assigns to ActiveNetworkConfig).
+
+// ->Second time you call it: ActiveNetworkConfig.PriceFeedWbtc != address(0)
+// It immediately returns the existing config and skips redeploying everything.
+// First time function called ==0, skip function deploy the lower contracts
+// second time called value !=0, it will return the value which was last return after deploying!
 
             vm.startBroadcast();
              MockV3Aggregator EthPrice = new MockV3Aggregator(DECIMALS, ETH_USD_PRICE);
@@ -59,5 +66,4 @@ contract HelperConfig is Script{
                          });                
         }
     }
-
-
+}
