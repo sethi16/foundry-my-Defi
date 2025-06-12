@@ -1,9 +1,8 @@
 //SPDX-LICENSE-IDENTIFIER: MIT
 pragma solidity ^0.8.18;
-import {MockV3Aggregator} from "../test/mocks/MockV3Aggregator.sol";
+//import {MockV3Aggregator} from "../test/mocks/MockV3Aggregator.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import { Script } from "forge-std/Script.sol";
-// import { ERC20Mock } from "../test/mocks/MockV3Aggregator.sol";
 import { ERC20Mock } from "@openzeppelin/contracts/mocks/ERC20Mock.sol";
 
 contract HelperConfig is Script{
