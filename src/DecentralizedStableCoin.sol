@@ -40,7 +40,7 @@ contract DecentralizedStableCoin is ERC20Burnable, Ownable{
     error InsufficientBalance();
     error MustbeGreaterThanZero();
     error AmountCannotBeZero();
-    constructor() ERC20("DecentralizedStabelCoin","DSC"){
+    constructor(address initialOwner) ERC20("DecentralizedStabelCoin","DSC") Ownable(initialOwner){
     }
     // abstract function cant be deployed
     // Virtual function means it can be overridden by child contracts
