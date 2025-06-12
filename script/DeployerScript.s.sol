@@ -16,10 +16,10 @@ contract DeplyerScript is Script{
     HelperConfig config = new HelperConfig();
     (address Weth,address Wbtc, address PriceFeedWeth, address PriceFeedWbtc, uint256 deployerKey) 
     = config.ActiveNetworkConfig();
-    _tokenAddresses = (address Weth,address Wbtc);
-    _priceFeed = (address PriceFeedWeth, address PriceFeedWbtc);
+    _tokenAddresses = [Weth, Wbtc];
+    _priceFeed = [PriceFeedWeth, PriceFeedWbtc];
 
-    vm.startBroadcast(uint256 deployerKey);
+    vm.startBroadcast(deployerKey);
     // No need to pass the private key,
     // Here only pass if you dont give the key in the forge deployment command! 
     DecentralizedStableCoin DStablecoin = new DecentralizedStableCoin(msg.sender);
