@@ -24,11 +24,11 @@
 
 pragma solidity ^0.8.18;
 
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { DecentralizedStableCoin } from "./DecentralizedStableCoin.sol";
-import "chainlink-brownie-contracts/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-imprt {Oraclelib} from "./src/libraries/Oracle.lib"; 
+import "@chainlink/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+import {OracleLib} from "./src/libraries/OracleLib.sol"; 
 
 
 
