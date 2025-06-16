@@ -3,10 +3,11 @@ pragma solidity ^0.8.18;
 
 import {DSCEngine} from "../../src/DSCEngine.sol";
 import {DecentralizedStableCoin} from "../../src/DecentralizedStableCoin.sol";
-//import {Test} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {DeployerScript} from "../../script/DeployerScript.s.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import { ERC20Mock } from "./mocks/ERC20Mock.sol";
+import {MockV3Aggregator} from "../test/mocks/MockV3Aggregator.sol";
 
 contract StopOnRevertHandler is Test {
     Helperconfig Hc;
@@ -17,6 +18,9 @@ contract StopOnRevertHandler is Test {
   ERC20Mock weth;
   ERC20Mock wbtc;
   address[] testCollateralDepositer;
+  MockV3Aggregator PricefeedEth;
+  MockV3Aggregator PricefeedBtc;
+
 // address wbtc;
 
 // Here you see I deployed the same contract with its address, deploying it again I used the deployed address when it was deployed,
@@ -34,6 +38,10 @@ contract StopOnRevertHandler is Test {
        weth = ERC20Mock(TokenAddresses[0]);
        wbtc = ERC20Mock(TokenAddresses[1]);
        // I know when i deploy with the address, variable will get access to all the functions of this contract related to this token address
+       PricefeedEth =  MockV3Aggregator(getCollateralTokenPriceFeed(address(weth)));
+       PricefeedBtc =  MockV3Aggregator(getCollateralTokenPriceFeed(address(wbtc)));
+
+
     }
     /////////////////////////////////////////
     /////////Collateral deposit test/////////
@@ -95,6 +103,12 @@ contract StopOnRevertHandler is Test {
         burnDSC(tokensToBurn);
 
     }
+    /////////////////////////////////////////
+    //////Update Collateral price test/////// 
+    /////////////////////////////////////////
+
+
+
 
 
 

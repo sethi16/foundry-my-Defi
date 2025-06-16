@@ -23,7 +23,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.18;
-
+//import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { DecentralizedStableCoin } from "./DecentralizedStableCoin.sol";
@@ -164,16 +164,15 @@ import {OracleLib} from "./libraries/OracleLib.sol";
      }
 
     }
-    function revertIfHealthFactorIsBroken(address) public returns(uint256){
-      _healthFactor(msg.sender); // check for i & emit value liq value
-      uint256 healthyValue;
+    function revertIfHealthFactorIsBroken(address user) public view returns(uint256){
+      uint256 healthyValue = _healthFactor(user); // check for i & emit value liq value
       if(healthyValue < 1){
         revert healthIssue(healthyValue);
       }
-
+      return healthyValue;
     }
-    function _healthFactor(address) public returns(uint256) {
-      (uint256 minted_value, uint256 totalCollateralValueInUsd) = _getAccountInformation(msg.sender);
+    function _healthFactor(address user) public view returns(uint256) {
+      (uint256 minted_value, uint256 totalCollateralValueInUsd) = _getAccountInformation(user);
        // real value of emit & i
        return _calculateHealthFactor( minted_value, totalCollateralValueInUsd);
      
@@ -186,23 +185,24 @@ import {OracleLib} from "./libraries/OracleLib.sol";
       return healthyValue;
     }
 
-    function _getAccountInformation(address) public returns(uint256 minted_value, uint256 collateralValue){
-      minted_value = D_minted[msg.sender];
-      collateralValue = getAccountCollateralValue(msg.sender);
+    function _getAccountInformation(address user) public view returns(uint256 minted_value, uint256 collateralValue){
+      minted_value = D_minted[user];
+      collateralValue = getAccountCollateralValue(user);
       // it calculates the value of i & emit
     }
-    function getAccountCollateralValue(address) public returns(uint256){
+    function getAccountCollateralValue(address user) public view returns(uint256){
       uint256 totalCollateralValueInUsd = 0;
       for(uint256 index = 0; index < tokenContractAddress.length; index++){
         address token = tokenContractAddress[index];
-        uint256 tokenBalance = collateralBalances[msg.sender][token];
+        uint256 tokenBalance = collateralBalances[user][token];
         totalCollateralValueInUsd += getUsdValue(token, tokenBalance);
       }
       return totalCollateralValueInUsd ;
     }
 
-    function getUsdValue(address token, uint256 tokenBalance) public returns(uint256 ){
+    function getUsdValue(address token, uint256 tokenBalance) public view returns(uint256 ){
       uint256 usdValue = getUsdSum(token, tokenBalance);
+      return usdValue;
     }
 
     function getUsdSum(address token, uint256 tokenBalance) public view returns(uint256 usdValue){
@@ -276,7 +276,7 @@ function liquidation(address _tokenAddress, uint256 amount_to_liquidate, uint256
     revert Health_Factor_Not_Improved();
   }
 }
-   }
+  
    // Defines only the function signatures (no logic).
 
 //Used to interact with a contract without knowing its full implementation.
@@ -318,7 +318,7 @@ function liquidation(address _tokenAddress, uint256 amount_to_liquidate, uint256
     }
 
     function getCollateralTokens() external view returns (address[] memory) {
-        return s_collateralTokens;
+        return tokenContractAddress;
     }
 
       function getDsc() external view returns (address) {
@@ -341,5 +341,7 @@ function liquidation(address _tokenAddress, uint256 amount_to_liquidate, uint256
     function mintedTokens(address user) external view returns(uint256){
       return D_minted[user];
     }
+
+   }
 
   

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
-import "@chainlink/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
-
+// import "@chainlink/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+import "lib/chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 /*
  * @title OracleLib
  * @author Patrick Collins
