@@ -36,11 +36,17 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  // Here, ERC20Burnable is acting as a child contract of ERC20
  // Means ERC20, all functions & variables of ERC20 are inherited by ERC20Burnable
  // Means, we need to pass values of ERC20 constructor as ERC20Burnable has iherited it
+
+ /*
+  -> We have not created any initial supply here, as what we created in our ERC20 Token contract,
+  -> Here, we have made a token & when we '_mint' we get our minting token supply that time of ERC20 token we created
+  -> No initial supply, supply created after minting the token after getting the deposit
+ */
 contract DecentralizedStableCoin is ERC20Burnable, Ownable{
     error InsufficientBalance();
     error MustbeGreaterThanZero();
     error AmountCannotBeZero();
-    constructor(address initialOwner) ERC20("DecentralizedStabelCoin","DSC") Ownable(initialOwner){
+    constructor(address initialOwner) ERC20("DecentralizedStabelCoin","MYDSC") Ownable(initialOwner){
     }
     // abstract function cant be deployed
     // Virtual function means it can be overridden by child contracts

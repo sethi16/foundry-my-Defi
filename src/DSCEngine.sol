@@ -82,6 +82,9 @@ import {OracleLib} from "./libraries/OracleLib.sol";
     uint256 private constant PRECISION = 1e18;
     uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
     uint256 private constant FEED_PRECISION = 1e8;
+    address private First_Token;
+    address private Second_Token;
+
     // imported contract can act as a dataType if used!
 
     //////////////////////////
@@ -104,7 +107,7 @@ import {OracleLib} from "./libraries/OracleLib.sol";
     }
     
     modifier tokenAllowed(address checking_tokenAddress){
-      if(checking_tokenAddress == address(0)){
+      if(checking_tokenAddress == First_Token || checking_tokenAddress == Second_Token){
         revert tokenNotAllowed();
       }
       _;
@@ -114,6 +117,9 @@ import {OracleLib} from "./libraries/OracleLib.sol";
 // This allows us to work with the existing deployed DSC contract funtions when it was last deployed(e.g., call mint, burn, etc.)
 
      constructor(address[] memory tokenAddresses, address[] memory priceFeedAddress, address DSCAddress){
+      First_Token = tokenAddresses[0];
+      Second_Token = tokenAddresses[1];
+
       if(tokenAddresses.length != priceFeedAddress.length){
         revert InvalidLength();
       }
@@ -122,7 +128,7 @@ import {OracleLib} from "./libraries/OracleLib.sol";
         // mapping is for storage, includes key & values
         tokenContractAddress.push(tokenAddresses[i]);
       } 
-      i_DSC = DecentralizedStableCoin(DSCAddress);
+       i_DSC = DecentralizedStableCoin(DSCAddress);
     }
     // // Prevents reentrancy attacks by ensuring the function cannot be re-entered while it's still executing.
 // Requires inheriting from OpenZeppelin's ReentrancyGuard and using the `nonReentrant` modifier.
@@ -208,7 +214,7 @@ import {OracleLib} from "./libraries/OracleLib.sol";
       return usdValue;
     }
 
-    function depositCollateralAndMintDsc(address tokenCollateralAddress,uint256 amountCollateral,uint256 amountDscToMint) public { 
+    function depositCollateralAndMintDsc(address tokenCollateralAddress, uint256 amountCollateral, uint256 amountDscToMint) public { 
       depositCollateral(tokenCollateralAddress, amountCollateral);
       mintDSC(amountDscToMint);
 }
@@ -217,6 +223,7 @@ moreThanZero(amount_to_redeem) tokenAllowed(_tokenAddress){
    burnDSC(amount_to_be_burned);
   redeemCollateral(_tokenAddress, amount_to_redeem);
 }
+
 function redeemCollateral(address _tokenAddress, uint256 amount_to_redeem) public {
   uint256 savedBalance = collateralBalances[msg.sender][_tokenAddress];
   collateralBalances[msg.sender][_tokenAddress] = savedBalance - amount_to_redeem;
@@ -226,8 +233,13 @@ function redeemCollateral(address _tokenAddress, uint256 amount_to_redeem) publi
   if(!success){
     revert CollateralNotRedeemed();
   }
-  revertIfHealthFactorIsBroken(msg.sender); 
+   revertIfHealthFactorIsBroken(msg.sender); 
+    // checking health factor if less than one, No Redeem
+ 
   // checking the Health factor value is it greater than 1!
+  // If even the last part of your function fails,
+  // the whole function fails and none of the previous steps 
+  // (balance update, event emit, token transfer) will actually persist or happen.
 
 }
 function burnDSC(uint256 amount_to_be_burned) public{
@@ -265,3 +277,69 @@ function liquidation(address _tokenAddress, uint256 amount_to_liquidate, uint256
   }
 }
    }
+   // Defines only the function signatures (no logic).
+
+//Used to interact with a contract without knowing its full implementation.
+
+//It’s like a contract’s API.
+
+// 2. ERC = Implementation
+//Contains the actual logic behind those functions.
+
+//Fully functional contract.
+
+//You can deploy it and use it directly.
+///////////////////////////////
+// IMP You use IERC20 when you are not making your own token,
+// but simply interacting with an existing one like existed USDC, DAI, LINK, etc.
+
+ function getPrecision() external pure returns (uint256) {
+        return PRECISION;
+    }
+
+    function getAdditionalFeedPrecision() external pure returns (uint256) {
+        return ADDITIONAL_FEED_PRECISION;
+    }
+
+    function getLiquidationThreshold() external pure returns (uint256) {
+        return LIQUIDATION_THRESHOLD;
+    }
+
+    function getLiquidationBonus() external pure returns (uint256) {
+        return LIQUIDATION_BONUS;
+    }
+
+    function getLiquidationPrecision() external pure returns (uint256) {
+        return LIQUIDATION_PRECISION;
+    }
+
+    function getMinHealthFactor() external pure returns (uint256) {
+        return MIN_HEALTH_FACTOR;
+    }
+
+    function getCollateralTokens() external view returns (address[] memory) {
+        return s_collateralTokens;
+    }
+
+      function getDsc() external view returns (address) {
+        return address(i_DSC);
+    }
+// address(i_DSC) gives you the raw address of a contract variable — it's just a temporary cast, not a type change.
+// Yes — for that particular expression only, address(i_DSC) temporarily changes the type from DecentralizedStableCoin to address.
+//But this does not mutate or change the original variable's type (i_DSC) — it just treats it as an address in that moment.
+
+    function getCollateralTokenPriceFeed(address token) external view returns (address) {
+        return priceAddress[token];
+    }
+
+    function getHealthFactor(address user) external view returns (uint256) {
+        return _healthFactor(user);
+    }
+    function checkBalance(address user, address tokenAddress) external view returns(uint256){
+       return collateralBalances[user][tokenAddress];
+    }
+    function mintedTokens(address user) external view returns(uint256){
+      return D_minted[user];
+    }
+
+  

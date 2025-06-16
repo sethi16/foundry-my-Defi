@@ -2,7 +2,7 @@
 pragma solidity ^0.8.18;
 
 import {DSCEngine} from "../src/DSCEngine.sol";
-import {Script} from "forge-std/Script.sol";
+import { Script } from "forge-std/Script.sol";
 import { HelperConfig } from "./HelperConfig.s.sol";
 import {DecentralizedStableCoin } from "../src/DecentralizedStableCoin.sol";
 
@@ -19,7 +19,7 @@ contract DeplyerScript is Script{
     _tokenAddresses = [Weth, Wbtc];
     _priceFeed = [PriceFeedWeth, PriceFeedWbtc];
 
-    vm.startBroadcast(deployerKey);
+    vm.startBroadcast();
     // No need to pass the private key,
     // Here only pass if you dont give the key in the forge deployment command! 
     DecentralizedStableCoin DStablecoin = new DecentralizedStableCoin(msg.sender);
