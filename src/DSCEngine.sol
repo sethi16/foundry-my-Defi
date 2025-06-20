@@ -126,6 +126,7 @@ import {OracleLib} from "./libraries/OracleLib.sol";
       for ( uint256 i= 0; i< tokenAddresses.length; i++){
         priceAddress[tokenAddresses[i]] = priceFeedAddress[i];
         // mapping is for storage, includes key & values
+        // W3 dont have database it store everything in contarct in arrays & mappings
         tokenContractAddress.push(tokenAddresses[i]);
       } 
        i_DSC = DecentralizedStableCoin(DSCAddress);
@@ -141,6 +142,11 @@ import {OracleLib} from "./libraries/OracleLib.sol";
       collateralBalances[msg.sender][tokenAddress] += amount;
       // collateralBalances, this mapping gonna store the user who deposited what amount of collateral
       // whenever I use to check, I just gonna enter the user & Token Address will get the amount deposited!
+
+     //Imp
+     // Here, the address of the token is plain I converted the address into IERC20, by casting in AggregatorV3Interface contract with the pricefeed
+     // Now, the token became of IERC20, contract is taking the token from IERC20, as the user in the testing allow IERC20, to take my particular amount of token, so that the contract
+     // can take it from IERC20.
       (bool success) = IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount);
       /* We use the IERC20 interface to interact with external ERC20 token contracts.
 // It allows us to call standard ERC20 functions like transfer, approve, and transferFrom
