@@ -40,6 +40,18 @@ contract StopOnRevertHandler is Test {
        // I know when i deploy with the address, variable will get access to all the functions of this contract related to this token address
        PricefeedEth =  MockV3Aggregator(getCollateralTokenPriceFeed(address(weth)));
        PricefeedBtc =  MockV3Aggregator(getCollateralTokenPriceFeed(address(wbtc)));
+       // Here, I had the plain priceFeed & Token Address I converted it into of MockV3, as the token my contract got was of anvil, if testing was going through mainnet,
+      // I would be using the same token and allowing IERC20 not ERC20MOCK, as mock is contract and inherited the ERC20, which is abstract and use ERC20 function to allow and mint, 
+      // IERC20 function only can be called it's a part of ERC20, unlike ERC20 function can be called & modify, when i allowing through ERC20MOCK, witht the help of ERC20,  
+      // IERC20, also gets the token from the ERC20, as it is a part of it, then finally my contract can transfer.
+      // If I be using anvil chain, need to use the token as mock, also need to mint to increase its balance, unlike vm.deal, I was using here I here to use minting because vm.deal,
+      // can only be able to add ETH, after minting I can allow and contract can transfer.
+      // If I use Mainnet collateral token, I cant mint as it is a mainnet token, I will allow IERC20(toke_Name), by casting and call the allow function, and then transfer,
+      // In mainnet my metamask will transfer the tokens, when I use forge test, I choose etherum mainnet url or any other mainnet, & also the private key of my metamask,
+      // Here, my metamask will sign-off the transaction and pay for my tokens collateral tokens, same goes with chainlink, it use link token to pay for the subscription,
+      // When I test I pay tokens by the same method.
+      // In only fuzzing testing we have param in the function to get the input from stateful fuzzing, foundry.
+
 
 
     }
@@ -106,11 +118,6 @@ contract StopOnRevertHandler is Test {
     /////////////////////////////////////////
     //////Update Collateral price test/////// 
     /////////////////////////////////////////
-
-
-
-
-
 
     function getMyAddress(uint256 number) internal view returns (ERC20Mock) {
         if(number%2 == 0){
