@@ -184,9 +184,10 @@ import {OracleLib} from "./libraries/OracleLib.sol";
      
     }
     function _calculateHealthFactor(uint256 minted_value, uint256 totalCollateralValueInUsd) public pure returns(uint256){
-       if (minted_value == 0) 
+       if (minted_value == 0) {
        return type(uint256).max;
-       uint256 liqCollateralValue =  (totalCollateralValueInUsd *LIQUIDATION_THRESHOLD) /LIQUIDATION_PRECISION;
+    }
+      uint256 liqCollateralValue =  (totalCollateralValueInUsd *LIQUIDATION_THRESHOLD) /LIQUIDATION_PRECISION;
       uint256 healthyValue =  liqCollateralValue / minted_value;
       return healthyValue;
     }
